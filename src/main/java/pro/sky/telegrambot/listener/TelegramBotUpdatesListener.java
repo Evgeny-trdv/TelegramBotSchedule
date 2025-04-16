@@ -4,7 +4,6 @@ import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.TelegramException;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.BotCommand;
-import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.User;
 import com.pengrad.telegrambot.model.request.KeyboardButton;
@@ -17,6 +16,7 @@ import com.pengrad.telegrambot.request.UnbanChatMember;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import pro.sky.telegrambot.model.Notification;
 import pro.sky.telegrambot.repository.NotificationRepository;
@@ -24,10 +24,8 @@ import pro.sky.telegrambot.repository.NotificationRepository;
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,25 +64,6 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                 return; // игнорируем NPE
             }
 
-            //Message message = update.message();
-            //logger.info("Processing update: {}", update);
-            /*if (message != null && message.text() != null) {
-                // Обработка текстового сообщения
-                String text = message.text();
-                // ... ваш код обработки ...
-
-
-                if (text.equals("/start")) {
-                    long chatId = update.message().chat().id();
-                    String name = update.message().chat().firstName();
-                    sendStartMenu(chatId, name);
-                }
-
-            } else {
-                // Обработка других типов сообщений или игнорирование
-                System.out.println("Получено не текстовое сообщение или сообщение отсутствует");
-            }*/
-
             String messageText = update.message().text();
             Pattern pattern = Pattern.compile("(\\d{2}\\.\\d{2}\\.\\d{4}\\s\\d{2}:\\d{2})(\\s+)(.+)");
             Matcher matcher = pattern.matcher(messageText);
@@ -92,18 +71,25 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             logger.info("Processing update: {}", update);
 
             long chatId = update.message().chat().id();
-            String name = update.message().chat().firstName();
+            String nameUser = update.message().chat().firstName();
             User user = update.message().from();
             Long userId = user.id();
 
 
             if (messageText.equals("/start")) {
-                sendStartMenu(chatId, name);
+                sendStartMenu(chatId, nameUser);
             }
 
             if (messageText.equals("Начать работу")) {
                 sendStartNotification(chatId);
             }
+
+            /*if (messageText.equals("/schedule")) {
+                String text = "Сообщение получено, ждите уведомление";
+                SendMessage sendMessage = new SendMessage(chatId, text);
+                telegramBot.execute(sendMessage);
+                sendNotificationBeforeClose();
+            }*/
 
             if (messageText.equals("/leave")) {
                 removeUserFromChannels(userId, TARGET_CHANNELS);
@@ -126,8 +112,9 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
 
     private void setCommands() throws TelegramException {
         BotCommand command = new BotCommand("/start", "Запуск бота");
+        BotCommand commandTwo = new BotCommand("/schedule", "Отчёт времени перед уведомлением");
 
-        telegramBot.execute(new SetMyCommands(command));
+        telegramBot.execute(new SetMyCommands(command, commandTwo));
     }
 
     private void sendStartMenu(long chatId, String name) {
@@ -156,6 +143,27 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                 + not;
         SendMessage sendMessage = new SendMessage(chatId, text);
         sendMessage.parseMode(ParseMode.HTML);
+        telegramBot.execute(sendMessage);
+    }
+
+    @Scheduled(fixedRate = 60000)
+    public void sendNotificationBeforeClose() {
+        //String text = "У вас кончается подписка";
+        LocalDateTime now = LocalDateTime.now();
+        List<Notification> notifications = notificationRepository.findByDateBeforeAndSentFalse(now);
+        //SendMessage sendMessage = new SendMessage(notifications., notifications.g);
+
+        for (Notification message : notifications) {
+            sendMessage(message);
+            message.setSent(true);
+            notificationRepository.save(message);
+        }
+        //telegramBot.execute(sendMessage);
+    }
+
+    private void sendMessage(Notification message) {
+        SendMessage sendMessage = new SendMessage(message.getChatId().toString(), message.getMessage());
+
         telegramBot.execute(sendMessage);
     }
 

@@ -7,3 +7,4 @@ CREATE TABLE notification (
     message TEXT,
     date TIMESTAMP
     )
+
