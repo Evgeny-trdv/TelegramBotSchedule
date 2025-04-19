@@ -87,21 +87,21 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
 
-    @Scheduled(cron = "0 0/1 * * * *")
+    /*@Scheduled(cron = "0 0/1 * * * *")
     public void sendUsersNotifications() {
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
 
-        /**
+        *//**
          * создаётся список notifications с теми данными из БД, которые ещё актуальны
-         */
+         *//*
         List<Notification> notifications = notificationRepository.findByDateBeforeAndSentFalse(now);
 
-        /**
+        *//**
          * C помощью цикла проходим по всем notifications
          * вызываем метод для отправки сообщения
          * если сообщение отправлено column sent становится true
          * сохраняем изменения
-         */
+         *//*
         for (Notification notification : notifications) {
             sendMessageNotifications(notification);
             notification.setSent(true);
@@ -110,9 +110,9 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     }
 
     private void sendMessageNotifications(Notification notification) {
-        /**
+        *//**
          * Отправление уведомления из БД
-         */
+         *//*
         SendMessage sendMessage = new SendMessage(
                 notification.getChatId().toString(),
                 notification.getMessage());
@@ -122,7 +122,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         } catch (Exception e) {
             logger.error("Ошибка отправки сообщения в чат{}", notification.getChatId(), e);
         }
-    }
+    }*/
 
     private void setCommands() throws TelegramException {
         BotCommand command = new BotCommand("/start", "Запуск бота");
