@@ -7,3 +7,6 @@ CREATE TABLE notification (
     message TEXT,
     date TIMESTAMP
     )
+
+--changeset etaradaev:2
+ALTER TABLE notification ADD sent BOOLEAN

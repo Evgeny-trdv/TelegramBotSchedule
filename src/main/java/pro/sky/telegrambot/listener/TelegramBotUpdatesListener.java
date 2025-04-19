@@ -4,19 +4,16 @@ import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.TelegramException;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.BotCommand;
-import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
-import com.pengrad.telegrambot.model.User;
 import com.pengrad.telegrambot.model.request.KeyboardButton;
 import com.pengrad.telegrambot.model.request.ParseMode;
 import com.pengrad.telegrambot.model.request.ReplyKeyboardMarkup;
-import com.pengrad.telegrambot.request.BanChatMember;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.request.SetMyCommands;
-import com.pengrad.telegrambot.request.UnbanChatMember;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import pro.sky.telegrambot.model.Notification;
 import pro.sky.telegrambot.repository.NotificationRepository;
@@ -24,28 +21,21 @@ import pro.sky.telegrambot.repository.NotificationRepository;
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
 public class TelegramBotUpdatesListener implements UpdatesListener {
 
-    private Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesListener.class);
+    private final Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesListener.class);
 
     @Autowired
     private TelegramBot telegramBot;
 
     @Autowired
     private NotificationRepository notificationRepository;
-
-    private static final List<String> TARGET_CHANNELS = Arrays.asList(
-            "-1002516647653",
-            "-1002606419459"// Пример числового ID канала
-    );
 
     @PostConstruct
     public void init() {
@@ -66,36 +56,15 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                 return; // игнорируем NPE
             }
 
-            //Message message = update.message();
-            //logger.info("Processing update: {}", update);
-            /*if (message != null && message.text() != null) {
-                // Обработка текстового сообщения
-                String text = message.text();
-                // ... ваш код обработки ...
-
-
-                if (text.equals("/start")) {
-                    long chatId = update.message().chat().id();
-                    String name = update.message().chat().firstName();
-                    sendStartMenu(chatId, name);
-                }
-
-            } else {
-                // Обработка других типов сообщений или игнорирование
-                System.out.println("Получено не текстовое сообщение или сообщение отсутствует");
-            }*/
+            logger.info("Processing update: {}", update);
 
             String messageText = update.message().text();
             Pattern pattern = Pattern.compile("(\\d{2}\\.\\d{2}\\.\\d{4}\\s\\d{2}:\\d{2})(\\s+)(.+)");
             Matcher matcher = pattern.matcher(messageText);
-
-            logger.info("Processing update: {}", update);
-
             long chatId = update.message().chat().id();
             String name = update.message().chat().firstName();
-            User user = update.message().from();
-            Long userId = user.id();
 
+            // Process your updates here
 
             if (messageText.equals("/start")) {
                 sendStartMenu(chatId, name);
@@ -104,12 +73,6 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             if (messageText.equals("Начать работу")) {
                 sendStartNotification(chatId);
             }
-
-            if (messageText.equals("/leave")) {
-                removeUserFromChannels(userId, TARGET_CHANNELS);
-            }
-
-            // Process your updates here
 
             if (matcher.find()) {
                 String dateTime = matcher.group(1);
@@ -124,6 +87,43 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
 
+    /*@Scheduled(cron = "0 0/1 * * * *")
+    public void sendUsersNotifications() {
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+
+        *//**
+         * создаётся список notifications с теми данными из БД, которые ещё актуальны
+         *//*
+        List<Notification> notifications = notificationRepository.findByDateBeforeAndSentFalse(now);
+
+        *//**
+         * C помощью цикла проходим по всем notifications
+         * вызываем метод для отправки сообщения
+         * если сообщение отправлено column sent становится true
+         * сохраняем изменения
+         *//*
+        for (Notification notification : notifications) {
+            sendMessageNotifications(notification);
+            notification.setSent(true);
+            notificationRepository.save(notification);
+        }
+    }
+
+    private void sendMessageNotifications(Notification notification) {
+        *//**
+         * Отправление уведомления из БД
+         *//*
+        SendMessage sendMessage = new SendMessage(
+                notification.getChatId().toString(),
+                notification.getMessage());
+
+        try {
+            telegramBot.execute(sendMessage);
+        } catch (Exception e) {
+            logger.error("Ошибка отправки сообщения в чат{}", notification.getChatId(), e);
+        }
+    }*/
+
     private void setCommands() throws TelegramException {
         BotCommand command = new BotCommand("/start", "Запуск бота");
 
@@ -131,6 +131,9 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     }
 
     private void sendStartMenu(long chatId, String name) {
+        /**
+         * Приветствие + создание кнопки для дальнейшей работы
+         */
         String text = "Добро пожаловать, " + name + " Нажмите кнопку, чтобы продолжить.";
         SendMessage sendMessage = new SendMessage(chatId, text);
 
@@ -150,6 +153,9 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     }
 
     private void sendStartNotification(long chatId) {
+        /**
+         * стартовый текст для описания функции бота
+         */
         String not = "<b><i>01.01.2022 20:00 Сделать домашнюю работу</i></b>";
         String text = "Давайте попробуем создать напоминание, чтобы мы могли Вас о нём оповестить в нужное время."
                 + " Введите пожалуйста напоминание в формате: \n"
@@ -159,24 +165,5 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         telegramBot.execute(sendMessage);
     }
 
-    private void removeUserFromChannels(Long userId, List<String> channelIds) {
-        boolean allSuccess = true;
 
-        for (String chatId : channelIds) {
-            try {
-                // Сначала баним (это удалит из канала)
-                BanChatMember ban = new BanChatMember(chatId, userId);
-                telegramBot.execute(ban);
-
-                // Затем разбаниваем (если нужно, чтобы мог присоединиться снова)
-                UnbanChatMember unban = new UnbanChatMember(chatId, userId);
-                telegramBot.execute(unban);
-
-            } catch (IllegalAccessError e) {
-                allSuccess = false;
-                // Логируем ошибку для конкретного канала
-                System.err.println("Error removing user from channel " + chatId + ": " + e.getMessage());
-            }
-        }
-    }
 }

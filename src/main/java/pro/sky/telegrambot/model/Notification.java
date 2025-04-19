@@ -14,6 +14,7 @@ public class Notification {
     private Long chatId;
     private String message;
     private LocalDateTime date;
+    private boolean sent;
 
     public Notification() {
     }
@@ -23,6 +24,15 @@ public class Notification {
         this.chatId = chatId;
         this.message = message;
         this.date = date;
+        this.sent = false;
+    }
+
+    public boolean getSent() {
+        return sent;
+    }
+
+    public void setSent(boolean sent) {
+        this.sent = sent;
     }
 
     public Long getId() {
